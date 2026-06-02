@@ -1,0 +1,63 @@
+{
+  "name": "scholarflex-backend",
+  "version": "1.0.0",
+  "description": "ScholarFlex Backend API",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "start:cluster": "cross-env ENABLE_CLUSTER=true node server.js",
+    "start:pm2": "pm2 start ecosystem.config.js",
+    "start:pm2:prod": "pm2 start ecosystem.config.js --env production",
+    "stop:pm2": "pm2 stop ecosystem.config.js",
+    "restart:pm2": "pm2 restart ecosystem.config.js",
+    "dev": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prisma:generate": "dotenv -e ../.env -- prisma generate",
+    "prisma:migrate": "dotenv -e ../.env -- prisma migrate dev",
+    "prisma:migrate:deploy": "dotenv -e ../.env -- prisma migrate deploy",
+    "prisma:studio": "dotenv -e ../.env -- prisma studio",
+    "prisma:format": "prisma format",
+    "prisma:validate": "dotenv -e ../.env -- prisma validate",
+    "prisma:db:push": "dotenv -e ../.env -- prisma db push",
+    "db:setup": "node scripts/setup-database.js",
+    "db:seed": "node scripts/seed-database.js",
+    "db:check": "node scripts/check-database.js",
+    "db:fix-keys": "node scripts/fix-foreign-keys.js",
+    "db:migrate": "node scripts/run-migration.js",
+    "db:create-enums": "node scripts/create-enum-types.js",
+    "db:create-function": "node scripts/create-calculate-score-function.js",
+    "db:recalculate-scores": "node scripts/recalculate-test-scores.js",
+    "db:create-feedback-table": "node scripts/create-feedback-table.js",
+    "setup:env": "node scripts/setup-env.js"
+  },
+  "keywords": [
+    "scholarflex",
+    "api",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "archiver": "^7.0.1",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "csv-parse": "^5.6.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-validator": "^7.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.556.0",
+    "multer": "^2.0.2",
+    "nodemailer": "^8.0.1",
+    "prisma": "^6.19.0",
+    "uuid": "^8.3.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0",
+    "nodemon": "^3.1.11"
+  }
+}

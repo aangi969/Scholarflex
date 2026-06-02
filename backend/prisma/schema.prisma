@@ -1,0 +1,832 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  // provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Use same database as shadow to avoid permission issues
+  // shadowDatabaseUrl = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  roleName    String   @unique @map("role_name") @db.VarChar(50)
+  roleCode    String   @unique @map("role_code") @db.VarChar(20)
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  users       User[]
+
+  @@map("roles")
+}
+
+model Domain {
+  id             Int                   @id @default(autoincrement())
+  domainName     String                @unique @map("domain_name") @db.VarChar(100)
+  domainCode     String                @unique @map("domain_code") @db.VarChar(50)
+  description    String?
+  isActive       Boolean               @default(true) @map("is_active")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  questionPapers QuestionPaperDomain[]
+  students       Student[]
+  playlists      Playlist[]
+
+  @@map("domains")
+}
+
+model InternStatus {
+  id          Int       @id @default(autoincrement())
+  statusName  String    @unique @map("status_name") @db.VarChar(50)
+  statusCode  String    @unique @map("status_code") @db.VarChar(20)
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  students    Student[]
+
+  @@map("intern_status")
+}
+
+model User {
+  id                    Int              @id @default(autoincrement())
+  email                 String           @unique @db.VarChar(255)
+  passwordHash          String?          @map("password_hash") @db.VarChar(255)
+  fullName              String?          @map("full_name") @db.VarChar(255)
+  roleId                Int              @map("role_id")
+  isActive              Boolean          @default(true) @map("is_active")
+  lastLoginAt           DateTime?        @map("last_login_at")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+  createdBy             Int?             @map("created_by")
+  activityLogs          ActivityLog[]
+  fileUploads           FileUpload[]
+  questionPapersCreated QuestionPaper[]  @relation("QuestionPaperCreator")
+  questionPapersUpdated QuestionPaper[]  @relation("QuestionPaperUpdater")
+  questionsCreated      Question[]       @relation("QuestionCreator")
+  questionsUpdated      Question[]       @relation("QuestionUpdater")
+  studentsCreated       Student[]        @relation("StudentCreator")
+  testAssignments       TestAssignment[]
+  nocLettersReviewed    NOCLetter[]      @relation("NOCReviewer")
+  creator               User?            @relation("UserCreator", fields: [createdBy], references: [id])
+  created               User[]           @relation("UserCreator")
+  role                  Role             @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
+model OtpVerification {
+  id        Int      @id @default(autoincrement())
+  email     String   @db.VarChar(255)
+  otp       String   @db.VarChar(10)
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([otp])
+  @@index([expiresAt])
+  @@index([isUsed])
+  @@map("otp_verifications")
+}
+
+model Student {
+  id                   Int                      @id @default(autoincrement())
+  email                String                   @unique @db.VarChar(255)
+  fullName             String                   @map("full_name") @db.VarChar(255)
+  phone                String?                  @db.VarChar(20)
+  domainId             Int?                     @map("domain_id")
+  statusId             Int                      @default(1) @map("status_id")
+  registrationDate     DateTime                 @default(now()) @map("registration_date")
+  formLinkToken        String?                  @unique @map("form_link_token") @db.VarChar(100)
+  imageUrl             String?                  @map("image_url")
+  instituteName        String?                  @map("institute_name") @db.VarChar(255)
+  courseTaken          String?                  @map("course_taken") @db.VarChar(255)
+  currentYear          String?                  @map("current_year") @db.VarChar(50)
+  currentSemester      String?                  @map("current_semester") @db.VarChar(50)
+  graduationYear       Int?                     @map("graduation_year")
+  areaOfInterests      String?                  @map("area_of_interests") @db.Text
+  resumeUrl            String?                  @map("resume_url") @db.VarChar(500)
+  profileCompleted     Boolean                  @default(false) @map("profile_completed")
+  internshipStartDate  DateTime?                @map("internship_start_date")
+  internshipEndDate    DateTime?                @map("internship_end_date")
+  internshipDuration   String?                  @map("internship_duration") @db.VarChar(50)
+  referenceInformation String?                  @map("reference_information") @db.Text
+  internalFacultyName  String?                  @map("internal_faculty_name") @db.VarChar(255)
+  facultyContact       String?                  @map("faculty_contact") @db.VarChar(20)
+  facultyEmail         String?                  @map("faculty_email") @db.VarChar(255)
+  isActive             Boolean                  @default(true) @map("is_active")
+  isSelected           Boolean                  @default(false) @map("is_selected")
+  canRetest            Boolean                  @default(false) @map("can_retest")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+  createdBy            Int?                     @map("created_by")
+  creator              User?                    @relation("StudentCreator", fields: [createdBy], references: [id])
+  domain               Domain?                  @relation(fields: [domainId], references: [id])
+  status               InternStatus             @relation(fields: [statusId], references: [id])
+  testAssignments      TestAssignment[]
+  testAttempts         TestAttempt[]
+  studentActivityLogs  StudentActivityLog[]     @relation("StudentActivityLogs")
+  nocLetters           NOCLetter[]              @relation("NOCLetters")
+  internshipFeedbacks  InternshipFeedback[]     @relation("InternshipFeedbacks")
+  nocStatus            StudentNOCStatus?        @relation("StudentNOCStatus")
+  videoProgresses      VideoProgress[]
+  playlistAccesses     PlaylistAccess[]
+  internship           StudentInternship?
+  projects             StudentProject[]
+  personalProjects     StudentPersonalProject[]
+  skills               StudentSkill[]
+  achievements         StudentAchievement[]
+  evaluations          StudentEvaluation[]
+  timeTrackingSessions TimeTrackingSession[]
+  studentBatch         StudentBatch?
+
+  @@index([email])
+  @@index([domainId])
+  @@index([statusId])
+  @@index([formLinkToken])
+  @@index([isActive])
+  @@index([profileCompleted])
+  @@index([domainId, statusId, isActive])
+  @@map("students")
+}
+
+/// Academic year/batch per student (derived from internship dates). Keeps students table unchanged.
+model StudentBatch {
+  id           Int      @id @default(autoincrement())
+  studentId    Int      @unique @map("student_id")
+  academicYear String   @map("academic_year") @db.VarChar(20)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([academicYear])
+  @@map("student_batch")
+}
+
+/// App-wide settings (e.g. candidate registration enabled). Super admin only.
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique @db.VarChar(100)
+  value     String   @db.VarChar(500)
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model StudentInternship {
+  id        Int              @id @default(autoincrement())
+  studentId Int              @unique @map("student_id")
+  status    InternshipStatus @default(NOT_STARTED)
+  metadata  Json?
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
+  @@map("student_internship")
+}
+
+model StudentProject {
+  id                 Int       @id @default(autoincrement())
+  studentId          Int       @map("student_id")
+  projectTitle       String    @map("project_title") @db.VarChar(255)
+  projectDescription String?   @map("project_description") @db.Text
+  deadline           DateTime? @db.Date
+  projectData        Json?     @map("project_data")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([deadline])
+  @@map("student_projects")
+}
+
+model StudentPersonalProject {
+  id           Int      @id @default(autoincrement())
+  studentId    Int      @map("student_id")
+  projectTitle String   @map("project_title") @db.VarChar(255)
+  description  String?  @db.Text
+  techStack    String?  @map("tech_stack") @db.Text
+  role         String?  @db.VarChar(255)
+  githubLink   String?  @map("github_link") @db.VarChar(500)
+  liveLink     String?  @map("live_link") @db.VarChar(500)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@map("student_personal_projects")
+}
+
+model StudentSkill {
+  id        Int      @id @default(autoincrement())
+  studentId Int      @map("student_id")
+  skillType String   @map("skill_type") @db.VarChar(50) // 'language', 'framework', 'tool', 'soft_skill'
+  skillName String   @map("skill_name") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([skillType])
+  @@index([studentId, skillType])
+  @@map("student_skills")
+}
+
+model StudentAchievement {
+  id              Int       @id @default(autoincrement())
+  studentId       Int       @map("student_id")
+  achievementType String    @map("achievement_type") @db.VarChar(50) // 'hackathon', 'certification', 'award', 'competition'
+  title           String    @db.VarChar(255)
+  description     String?   @db.Text
+  issuer          String?   @db.VarChar(255)
+  date            DateTime? @db.Date
+  link            String?   @db.VarChar(500)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  student         Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([achievementType])
+  @@index([studentId, achievementType])
+  @@map("student_achievements")
+}
+
+model StudentEvaluation {
+  id             Int      @id @default(autoincrement())
+  studentId      Int      @map("student_id")
+  weekNo         Int      @map("week_no")
+  evaluationData Json     @map("evaluation_data")
+  createdAt      DateTime @default(now()) @map("created_at")
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, weekNo])
+  @@index([studentId])
+  @@index([weekNo])
+  @@index([studentId, weekNo])
+  @@map("student_evaluations")
+}
+
+model QuestionPaper {
+  id              Int                   @id @default(autoincrement())
+  paperName       String                @map("paper_name") @db.VarChar(255)
+  description     String?
+  subject         String?               @db.VarChar(100)
+  year            String?               @db.VarChar(10)
+  semester        String?               @db.VarChar(50)
+  totalQuestions  Int                   @default(0) @map("total_questions")
+  totalWeightage  Int                   @default(0) @map("total_weightage")
+  durationMinutes Int                   @default(60) @map("duration_minutes")
+  status          QuestionPaperStatus   @default(draft)
+  isActive        Boolean               @default(true) @map("is_active")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  createdBy       Int                   @map("created_by")
+  updatedBy       Int?                  @map("updated_by")
+  domains         QuestionPaperDomain[]
+  creator         User                  @relation("QuestionPaperCreator", fields: [createdBy], references: [id])
+  updater         User?                 @relation("QuestionPaperUpdater", fields: [updatedBy], references: [id])
+  questions       Question[]
+  testAssignments TestAssignment[]
+  testAttempts    TestAttempt[]
+
+  @@index([isActive])
+  @@index([status])
+  @@index([subject])
+  @@index([year])
+  @@index([createdBy])
+  @@map("question_papers")
+}
+
+model QuestionPaperDomain {
+  id              Int           @id @default(autoincrement())
+  questionPaperId Int           @map("question_paper_id")
+  domainId        Int           @map("domain_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  domain          Domain        @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  questionPaper   QuestionPaper @relation(fields: [questionPaperId], references: [id], onDelete: Cascade)
+
+  @@unique([questionPaperId, domainId])
+  @@index([questionPaperId])
+  @@index([domainId])
+  @@map("question_paper_domains")
+}
+
+model TestAssignment {
+  id              Int           @id @default(autoincrement())
+  questionPaperId Int           @map("question_paper_id")
+  studentId       Int           @map("student_id")
+  assignedBy      Int           @map("assigned_by")
+  assignedAt      DateTime      @default(now()) @map("assigned_at")
+  isActive        Boolean       @default(true) @map("is_active")
+  assigner        User          @relation(fields: [assignedBy], references: [id])
+  questionPaper   QuestionPaper @relation(fields: [questionPaperId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([questionPaperId, studentId])
+  @@index([questionPaperId])
+  @@index([studentId])
+  @@index([isActive])
+  @@map("test_assignments")
+}
+
+model Question {
+  id              Int              @id @default(autoincrement())
+  questionPaperId Int              @map("question_paper_id")
+  questionText    String           @map("question_text")
+  questionType    QuestionType     @default(MCQ) @map("question_type")
+  weightage       Int              @default(1)
+  correctAnswer   String?          @map("correct_answer")
+  displayOrder    Int              @default(0) @map("display_order")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  createdBy       Int              @map("created_by")
+  updatedBy       Int?             @map("updated_by")
+  section         String?          @db.VarChar(100)
+  options         QuestionOption[]
+  creator         User             @relation("QuestionCreator", fields: [createdBy], references: [id])
+  questionPaper   QuestionPaper    @relation(fields: [questionPaperId], references: [id], onDelete: Cascade)
+  updater         User?            @relation("QuestionUpdater", fields: [updatedBy], references: [id])
+  studentAnswers  StudentAnswer[]
+
+  @@index([questionPaperId])
+  @@index([questionType])
+  @@index([displayOrder])
+  @@index([isActive])
+  @@index([questionPaperId, isActive, displayOrder])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id             Int             @id @default(autoincrement())
+  questionId     Int             @map("question_id")
+  optionText     String          @map("option_text")
+  optionLabel    String          @map("option_label") @db.VarChar(10)
+  isCorrect      Boolean         @default(false) @map("is_correct")
+  displayOrder   Int             @default(0) @map("display_order")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  studentAnswers StudentAnswer[] @relation("SelectedOption")
+
+  @@index([questionId])
+  @@index([isCorrect])
+  @@index([displayOrder])
+  @@map("question_options")
+}
+
+model TestAttempt {
+  id                 Int               @id @default(autoincrement())
+  studentId          Int               @map("student_id")
+  questionPaperId    Int               @map("question_paper_id")
+  startedAt          DateTime          @default(now()) @map("started_at")
+  submittedAt        DateTime?         @map("submitted_at")
+  autoSubmitted      Boolean           @default(false) @map("auto_submitted")
+  timeTakenSeconds   Int?              @map("time_taken_seconds")
+  totalQuestions     Int               @default(0) @map("total_questions")
+  questionsAttempted Int               @default(0) @map("questions_attempted")
+  totalScore         Decimal           @default(0) @map("total_score") @db.Decimal(10, 2)
+  maxPossibleScore   Decimal           @default(0) @map("max_possible_score") @db.Decimal(10, 2)
+  percentageScore    Decimal           @default(0) @map("percentage_score") @db.Decimal(5, 2)
+  status             TestAttemptStatus @default(IN_PROGRESS)
+  ipAddress          String?           @map("ip_address") @db.VarChar(45)
+  userAgent          String?           @map("user_agent")
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  questionPool       Json?             @map("question_pool")
+  studentAnswers     StudentAnswer[]
+  questionPaper      QuestionPaper     @relation(fields: [questionPaperId], references: [id])
+  student            Student           @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([questionPaperId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([studentId, status])
+  @@map("test_attempts")
+}
+
+model StudentAnswer {
+  id                Int             @id @default(autoincrement())
+  testAttemptId     Int             @map("test_attempt_id")
+  questionId        Int             @map("question_id")
+  selectedOptionId  Int?            @map("selected_option_id")
+  selectedOptionIds String?         @map("selected_option_ids")
+  answerText        String?         @map("answer_text")
+  isCorrect         Boolean         @default(false) @map("is_correct")
+  scoreObtained     Decimal         @default(0) @map("score_obtained") @db.Decimal(10, 2)
+  answeredAt        DateTime        @default(now()) @map("answered_at")
+  question          Question        @relation(fields: [questionId], references: [id])
+  selectedOption    QuestionOption? @relation("SelectedOption", fields: [selectedOptionId], references: [id])
+  testAttempt       TestAttempt     @relation(fields: [testAttemptId], references: [id], onDelete: Cascade)
+
+  @@unique([testAttemptId, questionId])
+  @@index([testAttemptId])
+  @@index([questionId])
+  @@index([isCorrect])
+  @@index([testAttemptId, questionId])
+  @@map("student_answers")
+}
+
+model ActivityLog {
+  id             Int      @id @default(autoincrement())
+  userId         Int?     @map("user_id")
+  userType       UserType @map("user_type")
+  action         String   @db.VarChar(100)
+  entityType     String   @map("entity_type") @db.VarChar(50)
+  entityId       Int?     @map("entity_id")
+  description    String?
+  requestMethod  String?  @map("request_method") @db.VarChar(10)
+  requestPath    String?  @map("request_path") @db.VarChar(255)
+  requestBody    Json?    @map("request_body")
+  responseStatus Int?     @map("response_status")
+  ipAddress      String?  @map("ip_address") @db.VarChar(45)
+  userAgent      String?  @map("user_agent")
+  createdAt      DateTime @default(now()) @map("created_at")
+  user           User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([userType])
+  @@index([createdAt(sort: Desc)], map: "idx_created_at_desc_logs")
+  @@map("activity_logs")
+}
+
+model FileUpload {
+  id               Int          @id @default(autoincrement())
+  fileName         String       @map("file_name") @db.VarChar(255)
+  fileType         String       @map("file_type") @db.VarChar(50)
+  fileSize         BigInt?      @map("file_size")
+  uploadType       UploadType   @map("upload_type")
+  status           UploadStatus @default(PENDING)
+  recordsProcessed Int          @default(0) @map("records_processed")
+  recordsFailed    Int          @default(0) @map("records_failed")
+  errorMessage     String?      @map("error_message")
+  uploadedBy       Int          @map("uploaded_by")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  uploader         User         @relation(fields: [uploadedBy], references: [id])
+
+  @@index([uploadType])
+  @@index([status])
+  @@index([uploadedBy])
+  @@map("file_uploads")
+}
+
+model Playlist {
+  id                   Int                  @id @default(autoincrement())
+  title                String               @db.VarChar(255)
+  description          String?
+  domainId             Int                  @map("domain_id")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  domain               Domain               @relation(fields: [domainId], references: [id])
+  videos               Video[]
+  playlistAccesses     PlaylistAccess[]
+  openPlaylistAccesses OpenPlaylistAccess[]
+
+  @@index([domainId])
+  @@map("playlists")
+}
+
+model Video {
+  id                  Int                 @id @default(autoincrement())
+  playlistId          Int                 @map("playlist_id")
+  title               String              @db.VarChar(255)
+  youtubeUrl          String              @map("youtube_url") @db.VarChar(500)
+  orderIndex          Int                 @default(0) @map("order_index")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  playlist            Playlist            @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoProgresses     VideoProgress[]
+  openVideoProgresses OpenVideoProgress[]
+
+  @@index([playlistId])
+  @@index([orderIndex])
+  @@index([playlistId, orderIndex])
+  @@map("videos")
+}
+
+model StudentActivityLog {
+  id           Int      @id @default(autoincrement())
+  studentId    Int      @map("student_id")
+  activityType String   @map("activity_type") @db.VarChar(100)
+  metadata     Json?
+  timestamp    DateTime @default(now())
+  student      Student  @relation("StudentActivityLogs", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([activityType])
+  @@index([timestamp])
+  @@index([studentId, timestamp])
+  @@map("student_activity_logs")
+}
+
+model NOCLetter {
+  id         Int       @id @default(autoincrement())
+  studentId  Int       @map("student_id")
+  fileName   String    @map("file_name") @db.VarChar(255)
+  filePath   String    @map("file_path") @db.VarChar(500)
+  fileSize   BigInt    @map("file_size")
+  status     NOCStatus @default(PENDING)
+  uploadedAt DateTime  @default(now()) @map("uploaded_at")
+  reviewedAt DateTime? @map("reviewed_at")
+  reviewedBy Int?      @map("reviewed_by")
+  reviewer   User?     @relation("NOCReviewer", fields: [reviewedBy], references: [id])
+  student    Student   @relation("NOCLetters", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([status])
+  @@index([uploadedAt])
+  @@map("noc_letters")
+}
+
+model InternshipFeedback {
+  id                 Int      @id @default(autoincrement())
+  studentId          Int      @map("student_id")
+  overallRating      Int      @map("overall_rating") // 1-5 scale
+  learningExperience String?  @map("learning_experience") @db.Text
+  contentQuality     Int?     @map("content_quality") // 1-5 scale
+  mentorSupport      Int?     @map("mentor_support") // 1-5 scale
+  platformUsability  Int?     @map("platform_usability") // 1-5 scale
+  suggestions        String?  @db.Text
+  wouldRecommend     Boolean? @map("would_recommend")
+  additionalComments String?  @map("additional_comments") @db.Text
+  submittedAt        DateTime @default(now()) @map("submitted_at")
+  student            Student  @relation("InternshipFeedbacks", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId])
+  @@index([studentId])
+  @@index([submittedAt])
+  @@map("internship_feedback")
+}
+
+model StudentNOCStatus {
+  id         Int       @id @default(autoincrement())
+  studentId  Int       @unique @map("student_id")
+  isReceived Boolean   @default(false) @map("is_received")
+  updatedAt  DateTime? @map("updated_at")
+  student    Student   @relation("StudentNOCStatus", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId], map: "idx_student_noc_status_student_id")
+  @@map("student_noc_status")
+}
+
+model VideoProgress {
+  id               Int            @id @default(autoincrement())
+  studentId        Int            @map("student_id")
+  videoId          Int            @map("video_id")
+  playlistId       Int            @map("playlist_id")
+  openedAt         DateTime?      @map("opened_at")
+  startedWatching  DateTime?      @map("started_watching")
+  completedAt      DateTime?      @map("completed_at")
+  watchTimeSeconds Int            @default(0) @map("watch_time_seconds")
+  progressPercent  Decimal        @default(0) @map("progress_percent") @db.Decimal(5, 2)
+  lastPosition     Decimal        @default(0) @map("last_position") @db.Decimal(10, 2)
+  isCompleted      Boolean        @default(false) @map("is_completed")
+  replayCount      Int            @default(0) @map("replay_count")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  student          Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  video            Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  sessions         VideoSession[]
+
+  @@unique([studentId, videoId])
+  @@index([studentId])
+  @@index([videoId])
+  @@index([playlistId])
+  @@index([isCompleted])
+  @@index([studentId, isCompleted])
+  @@index([studentId, videoId])
+  @@map("video_progress")
+}
+
+model VideoSession {
+  id               Int           @id @default(autoincrement())
+  videoProgressId  Int           @map("video_progress_id")
+  sessionId        String        @unique @map("session_id") @db.VarChar(100)
+  startedAt        DateTime      @map("started_at")
+  endedAt          DateTime?     @map("ended_at")
+  watchTimeSeconds Int           @default(0) @map("watch_time_seconds")
+  maxProgress      Decimal       @default(0) @map("max_progress") @db.Decimal(5, 2)
+  isCompleted      Boolean       @default(false) @map("is_completed")
+  exitReason       String?       @map("exit_reason") @db.VarChar(50)
+  userAgent        String?       @map("user_agent")
+  ipAddress        String?       @map("ip_address") @db.VarChar(45)
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  videoProgress    VideoProgress @relation(fields: [videoProgressId], references: [id], onDelete: Cascade)
+  events           VideoEvent[]
+
+  @@index([videoProgressId])
+  @@index([sessionId])
+  @@index([startedAt])
+  @@index([videoProgressId, startedAt])
+  @@map("video_sessions")
+}
+
+model VideoEvent {
+  id              Int          @id @default(autoincrement())
+  sessionId       Int          @map("session_id")
+  eventType       String       @map("event_type") @db.VarChar(50)
+  videoPosition   Decimal      @default(0) @map("video_position") @db.Decimal(10, 2)
+  videoDuration   Decimal?     @map("video_duration") @db.Decimal(10, 2)
+  progressPercent Decimal      @default(0) @map("progress_percent") @db.Decimal(5, 2)
+  playbackRate    Decimal      @default(1) @map("playback_rate") @db.Decimal(3, 2)
+  timestamp       DateTime     @default(now())
+  metadata        Json?
+  session         VideoSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([sessionId, eventType])
+  @@index([sessionId, timestamp])
+  @@map("video_events")
+}
+
+model PlaylistAccess {
+  id         Int      @id @default(autoincrement())
+  studentId  Int      @map("student_id")
+  playlistId Int      @map("playlist_id")
+  openedAt   DateTime @default(now()) @map("opened_at")
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([playlistId])
+  @@index([studentId, playlistId])
+  @@index([openedAt])
+  @@map("playlist_access")
+}
+
+model TimeTrackingSession {
+  id                  Int                  @id @default(autoincrement())
+  studentId           Int                  @map("student_id")
+  startTime           DateTime             @map("start_time")
+  finishTime          DateTime?            @map("finish_time")
+  totalMinutes        Int?                 @map("total_minutes")
+  pausedMinutes       Int                  @default(0) @map("paused_minutes")
+  status              TimeTrackingStatus   @default(ACTIVE)
+  lastHeartbeatAt     DateTime?            @map("last_heartbeat_at")
+  lastPausedAt        DateTime?            @map("last_paused_at")
+  pauseCount          Int                  @default(0) @map("pause_count")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  student             Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  attendanceQuestions AttendanceQuestion[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([startTime])
+  @@index([studentId, status])
+  @@index([studentId, startTime])
+  @@map("time_tracking_sessions")
+}
+
+model AttendanceQuestion {
+  id                  Int                 @id @default(autoincrement())
+  sessionId           Int                 @map("session_id")
+  questionText        String              @map("question_text") @db.Text
+  correctAnswer       String              @map("correct_answer") @db.VarChar(255)
+  studentAnswer       String?             @map("student_answer") @db.VarChar(255)
+  isCorrect           Boolean?            @map("is_correct")
+  askedAt             DateTime            @map("asked_at")
+  answeredAt          DateTime?           @map("answered_at")
+  timeTrackingSession TimeTrackingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([askedAt])
+  @@map("attendance_questions")
+}
+
+enum TimeTrackingStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+enum QuestionPaperStatus {
+  draft
+  published
+}
+
+enum QuestionType {
+  MCQ
+  SINGLE_CHOICE
+  MULTIPLE_SELECT
+  TRUE_FALSE
+}
+
+enum TestAttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  AUTO_SUBMITTED
+}
+
+enum UserType {
+  USER
+  STUDENT
+}
+
+enum UploadType {
+  QUESTION_PAPER
+  STUDENTS
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum NOCStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InternshipStatus {
+  NOT_STARTED
+  ONGOING
+  COMPLETED
+}
+
+// Open Student Models
+model OpenStudent {
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique @db.VarChar(255)
+  name                String?   @db.VarChar(255)
+  phone               String?   @db.VarChar(20)
+  isActive            Boolean   @default(true) @map("is_active")
+  lastAccessAt        DateTime? @map("last_access_at")
+  convertedToInternId Int?      @map("converted_to_intern_id")
+  convertedAt         DateTime? @map("converted_at")
+  deletedAt           DateTime? @map("deleted_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  sessions         OpenSession[]
+  videoProgresses  OpenVideoProgress[]
+  playlistAccesses OpenPlaylistAccess[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([convertedToInternId])
+  @@index([lastAccessAt])
+  @@map("open_students")
+}
+
+model OpenSession {
+  id            Int         @id @default(autoincrement())
+  openStudentId Int         @map("open_student_id")
+  token         String      @unique @db.VarChar(100)
+  expiresAt     DateTime    @map("expires_at")
+  lastUsedAt    DateTime    @default(now()) @map("last_used_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  openStudent   OpenStudent @relation(fields: [openStudentId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
+  @@index([openStudentId])
+  @@map("open_sessions")
+}
+
+model OpenVideoProgress {
+  id               Int         @id @default(autoincrement())
+  openStudentId    Int         @map("open_student_id")
+  videoId          Int         @map("video_id")
+  playlistId       Int         @map("playlist_id")
+  openedAt         DateTime?   @map("opened_at")
+  startedWatching  DateTime?   @map("started_watching")
+  watchTimeSeconds Int         @default(0) @map("watch_time_seconds")
+  progressPercent  Decimal     @default(0) @map("progress_percent") @db.Decimal(5, 2)
+  lastPosition     Decimal     @default(0) @map("last_position") @db.Decimal(10, 2)
+  isCompleted      Boolean     @default(false) @map("is_completed")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+  openStudent      OpenStudent @relation(fields: [openStudentId], references: [id], onDelete: Cascade)
+  video            Video       @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([openStudentId, videoId])
+  @@index([openStudentId])
+  @@index([videoId])
+  @@index([isCompleted])
+  @@map("open_video_progress")
+}
+
+model OpenPlaylistAccess {
+  id            Int         @id @default(autoincrement())
+  openStudentId Int         @map("open_student_id")
+  playlistId    Int         @map("playlist_id")
+  openedAt      DateTime    @default(now()) @map("opened_at")
+  openStudent   OpenStudent @relation(fields: [openStudentId], references: [id], onDelete: Cascade)
+  playlist      Playlist    @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([openStudentId, playlistId])
+  @@index([openStudentId])
+  @@index([playlistId])
+  @@index([openedAt])
+  @@map("open_playlist_access")
+}

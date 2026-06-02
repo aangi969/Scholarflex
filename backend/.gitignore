@@ -1,0 +1,15 @@
+node_modules/
+.env
+*.log
+.DS_Store
+dist/
+build/
+# Uploads folder - contains user-uploaded files
+uploads/
+uploads/**
+!uploads/.gitkeep
+# PM2 logs directory
+logs/
+
+
+/generated/prisma
